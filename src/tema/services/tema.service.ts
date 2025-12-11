@@ -34,7 +34,7 @@ export class TemaService {
     return tema;
   }
 
-  async findAllByDescricao(descricao: string): Promise<Tema[]> {
+  async findByDescricao(descricao: string): Promise<Tema[]> {
     return await this.temaRepository.find({
       where: {
         descricao: ILike(`%${descricao}%`),
@@ -50,13 +50,19 @@ export class TemaService {
   }
 
   async update(tema: Tema): Promise<Tema> {
-    await this.findById(tema.id);
+    const buscaTema = await this.findById(tema.id);
+
+    if (!buscaTema || !tema.id)
+      throw new HttpException('Tema não encontrado!', HttpStatus.NOT_FOUND);
 
     return await this.temaRepository.save(tema);
   }
 
   async delete(id: number): Promise<DeleteResult> {
-    await this.findById(id);
+    const buscaTema = await this.findById(id);
+
+    if (!buscaTema)
+      throw new HttpException('Tema não encontrado!', HttpStatus.NOT_FOUND);
 
     return await this.temaRepository.delete(id);
   }
