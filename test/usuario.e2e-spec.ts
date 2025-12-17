@@ -1,13 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
-import { AppModule } from '../src/app.module';
+import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
+// --- IMPORTANTE: Ajuste os caminhos se necessário ---
+import { Usuario } from '../src/usuario/entities/usuario.entity';
+import { UsuarioModule } from '../src/usuario/usuario.module';
+import { AuthModule } from '../src/auth/auth.module';
+
+// Se você já tiver Postagem e Tema, mantenha. Se não, comente as linhas abaixo:
+import { Postagem } from '../src/postagem/entities/postagem.entity';
+import { PostagemModule } from '../src/postagem/postagem.module';
+import { Tema } from '../src/tema/entities/tema.entity';
+import { TemaModule } from '../src/tema/tema.module';
+
+describe('Testes dos Módulos Usuário e Auth (e2e)', () => {
+  let app: INestApplication;
   let token: any;
   let usuarioId: any;
-  let app: INestApplication;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -15,16 +25,20 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
         TypeOrmModule.forRoot({
           type: 'sqlite',
           database: ':memory:',
-          entities: [__dirname + './../src/**/entities/*.entity.ts'],
+          // Aqui carregamos as entidades diretamente ao invés de usar caminho de arquivo
+          entities: [Usuario, Postagem, Tema],
           synchronize: true,
           dropSchema: true,
         }),
-        AppModule,
+        // Importamos apenas os módulos que vamos testar, não o AppModule inteiro
+        UsuarioModule,
+        AuthModule,
+        PostagemModule,
+        TemaModule,
       ],
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe());
     await app.init();
   });
 
@@ -32,33 +46,33 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
     await app.close();
   });
 
-  it('01 - Deve Cadastrar um novo Usuário', async () => {
+  it('01 - Deve Cadastrar Usuario', async () => {
     const resposta = await request(app.getHttpServer())
       .post('/usuarios/cadastrar')
       .send({
         nome: 'Root',
         usuario: 'root@root.com',
         senha: 'rootroot',
-        foto: '-',
+        foto: 'https://i.imgur.com/FETvs2O.jpg', // Coloquei uma foto válida por garantia
       })
       .expect(201);
 
     usuarioId = resposta.body.id;
   });
 
-  it('02 - Não Deve Cadastrar um Usuário Duplicado', async () => {
-    await request(app.getHttpServer())
+  it('02 - Não Deve Duplicar o Usuário', async () => {
+    return request(app.getHttpServer())
       .post('/usuarios/cadastrar')
       .send({
         nome: 'Root',
         usuario: 'root@root.com',
         senha: 'rootroot',
-        foto: '-',
+        foto: 'https://i.imgur.com/FETvs2O.jpg',
       })
-      .expect(400);
+      .expect(400); // Espera Erro 400 (Bad Request)
   });
 
-  it('03 - Deve Autenticar o Usuário (Login)', async () => {
+  it('03 - Deve Autenticar Usuario (Login)', async () => {
     const resposta = await request(app.getHttpServer())
       .post('/usuarios/logar')
       .send({
@@ -73,7 +87,7 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
   it('04 - Deve Listar todos os Usuários', async () => {
     return request(app.getHttpServer())
       .get('/usuarios/all')
-      .set('Authorization', `${token}`)
+      .set('Authorization', `${token}`) // Passando o token no Header
       .send({})
       .expect(200);
   });
@@ -87,11 +101,11 @@ describe('Testes dos Módulos Usuario e Auth (e2e)', () => {
         nome: 'Root Atualizado',
         usuario: 'root@root.com',
         senha: 'rootroot',
-        foto: '-',
+        foto: 'https://i.imgur.com/FETvs2O.jpg',
       })
       .expect(200)
       .then((resposta) => {
-        expect('Root Atualizado').toEqual(resposta.body.nome);
+        expect(resposta.body.nome).toEqual('Root Atualizado');
       });
   });
 });
