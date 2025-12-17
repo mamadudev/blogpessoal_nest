@@ -4,7 +4,6 @@ import {
   Delete,
   Get,
   HttpCode,
-  HttpException,
   HttpStatus,
   Param,
   ParseIntPipe,
@@ -12,12 +11,15 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
 import { Tema } from '../entities/tema.entity';
 import { TemaService } from '../services/tema.service';
 
+@ApiTags('Tema')
 @UseGuards(JwtAuthGuard)
 @Controller('/temas')
+@ApiBearerAuth()
 export class TemaController {
   constructor(private readonly temaService: TemaService) {}
 
@@ -35,7 +37,7 @@ export class TemaController {
 
   @Get('/descricao/:descricao')
   @HttpCode(HttpStatus.OK)
-  findAllBydescricao(@Param('descricao') descricao: string): Promise<Tema[]> {
+  findBydescricao(@Param('descricao') descricao: string): Promise<Tema[]> {
     return this.temaService.findByDescricao(descricao);
   }
 
