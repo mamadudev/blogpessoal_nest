@@ -15,6 +15,9 @@ export class TemaService {
       relations: {
         postagem: true,
       },
+      order: {
+        id: 'ASC',
+      },
     });
   }
 
